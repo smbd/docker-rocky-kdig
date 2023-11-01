@@ -1,0 +1,5 @@
+rpmbuild/SPECS/*
+rpmbuild/SOURCES/*
+rpmbuild/SRPMS/*
+
+!.gitkeep

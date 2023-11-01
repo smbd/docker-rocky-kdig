@@ -1,0 +1,3 @@
+[submodule "copr_repo"]
+	path = copr_repo
+	url = http://copr-dist-git.fedorainfracloud.org/git/@cznic/knot-dns-latest/knot.git

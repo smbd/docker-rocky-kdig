@@ -1,0 +1,5 @@
+[knot]
+enabled=1
+gpgcheck=0
+name=knot
+baseurl=file:///tmp/knot
