@@ -12,6 +12,6 @@ docker run --rm smbd/kdig +json +dnssec -t AAAA www.google.com
 ./build.sh
 
 ### Knot DNSの更新方法
-`copr_repo/` がcoprのrepoをgit submoduleしてあり、`copr_repo/knot.spec` からversionを拾っているので、cdしてgit pull(してgit commit)すれば最新のものになる
+`copr_repo/` がcoprのrepoをgit submoduleしてあり、`copr_repo/knot.spec` からversionを拾っているので、`git submodule update --remote` (して `git add copr_repo && git commit`)すれば最新のものになる
 
 copr側が更新されていなかったら `copr_repo/knot.spec` と `copr_repo/sources` を手で更新すればよい (後者はmd5sumの出力)
