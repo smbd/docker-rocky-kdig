@@ -1,17 +1,22 @@
+# syntax=docker/dockerfile:1
+
+ARG ROCKY_REL=9.3
+
+FROM rockylinux/rockylinux:${ROCKY_REL} AS builder
+
 ARG ROCKY_REL
-FROM rockylinux/rockylinux:${ROCKY_REL} as builder
+ARG KNOT_VER=3.4.4
 
-RUN dnf install -y 'dnf-command(config-manager)' && \
- dnf config-manager --set-enabled crb && \
- dnf install -y epel-release && \
- dnf install -y rpm-build rpmdevtools \
-  autoconf automake gcc glibc-devel make pkgconf \
-  'dnf-command(builddep)' createrepo && \
- rpmdev-setuptree
+RUN --mount=type=cache,sharing=locked,target=/var/cache/yum \
+ dnf groupinstall -y "Development Tools" \
+ && dnf install -y wget 'dnf-command(builddep)' createrepo
 
+COPY copr_repo/ /root/copr_repo/
 COPY rpmbuild/ /root/rpmbuild/
 
-RUN if [ -f /root/rpmbuild/SRPMS/*.src.rpm ] ; then dnf builddep -y /root/rpmbuild/SRPMS/*src.rpm && rpmbuild --define "debug_package %{nil}" --rebuild /root/rpmbuild/SRPMS/*.src.rpm ; else dnf builddep -y /root/rpmbuild/SPECS/*.spec && rpmbuild --define "debug_package %{nil}" -ba /root/rpmbuild/SPECS/*.spec ; fi
+RUN cd /root/rpmbuild/SOURCES/ && wget -q https://secure.nic.cz/files/knot-dns/knot-${KNOT_VER}.tar.xz
+
+RUN if [ -f /root/rpmbuild/SRPMS/*.src.rpm ] ; then dnf --enablerepo=crb builddep -y /root/rpmbuild/SRPMS/*src.rpm && rpmbuild --define "debug_package %{nil}" --rebuild /root/rpmbuild/SRPMS/*.src.rpm ; else dnf --enablerepo=crb builddep -y /root/rpmbuild/SPECS/*.spec && rpmbuild --define "debug_package %{nil}" -ba /root/rpmbuild/SPECS/*.spec ; fi
 
 RUN mkdir -p /tmp/knot
 RUN cd /root/rpmbuild/RPMS/`uname -m` \
@@ -19,18 +24,11 @@ RUN cd /root/rpmbuild/RPMS/`uname -m` \
 
 RUN createrepo /tmp/knot
 
-ARG ROCKY_REL
-FROM rockylinux/rockylinux:9.2-minimal
-
-LABEL maintainer="Mitsuru Shimamura <smbd.jp@gmail.com>"
-
-RUN mkdir -p /tmp/knot
-
-COPY --from=builder /tmp/knot /tmp/knot
+FROM rockylinux/rockylinux:${ROCKY_REL}-minimal
 
 COPY knot.repo /etc/yum.repos.d/
 
-RUN microdnf install -y knot-utils \
- && microdnf clean all
+RUN --mount=type=bind,from=builder,source=/tmp/knot,target=/tmp/knot \
+ microdnf install -y knot-utils
 
 ENTRYPOINT ["/usr/bin/kdig"]
